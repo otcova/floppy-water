@@ -24,6 +24,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"alea": "^1.0.1",
 		"box2d-wasm": "^7.0.0",
 		"concaveman": "^1.2.1",
 		"earcut": "^2.2.4",
