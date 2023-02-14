@@ -1,37 +1,25 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { createCanvas, drawFrame } from "./Painter/main";
-	import { createGame } from "./Simulator/create";
-	import { stepGame } from "./Simulator/step";
+    import { createLocalBridge } from "./bridge";
+    import { startClient } from "./client";
+    import { startServer } from "./server";
 
 	let container: HTMLDivElement;
-	let error: string = "";
 
 	onMount(() => {
-		let stop = false;
-		const frame = createGame([
-			{
-				name: "Octova",
-				skin: 0,
-			},
-		]);
-		const canvas = createCanvas(container);
-		if (canvas) {
-			const drawLoop = () => {
-				drawFrame(canvas, frame);
-				stepGame(frame);
-				if (!stop) requestAnimationFrame(drawLoop);
-			};
-			drawLoop();
-		} else {
-			error = "Your browser is limited";
-		}
+		const [serverBridge, clientBridge] = createLocalBridge();
+		
+		const stopRenderer = startClient(container, clientBridge);
+		const stopServer = startServer(serverBridge);
 
-		return () => (stop = true);
+		return () => {
+			stopRenderer();
+			stopServer();
+		};
 	});
 </script>
 
-<div class="container" bind:this={container}>{error}</div>
+<div class="container" bind:this={container}></div>
 
 <style>
 	:global(body, html),

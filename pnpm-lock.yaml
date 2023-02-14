@@ -6,6 +6,7 @@ specifiers:
   '@types/concaveman': ^1.1.3
   '@types/earcut': ^2.1.1
   '@types/html-minifier': ^4.0.2
+  alea: ^1.0.1
   box2d-wasm: ^7.0.0
   concaveman: ^1.2.1
   earcut: ^2.2.4
@@ -18,6 +19,7 @@ specifiers:
   vite: ^4.0.0
 
 dependencies:
+  alea: 1.0.1
   box2d-wasm: 7.0.0
   concaveman: 1.2.1
   earcut: 2.2.4
@@ -386,6 +388,10 @@ packages:
     dependencies:
       source-map: 0.6.1
     dev: true
+
+  /alea/1.0.1:
+    resolution: {integrity: sha512-QU+wv+ziDXaMxRdsQg/aH7sVfWdhKps5YP97IIwFkHCsbDZA3k87JXoZ5/iuemf4ntytzIWeScrRpae8+lDrXA==}
+    dev: false
 
   /anymatch/3.1.3:
     resolution: {integrity: sha512-KMReFUr0B4t+D+OBkjR3KYqvocp2XaSzO55UcB6mgQMd3KbcE+mWTyvVV7D/zsdEbNnV6acZUutkiHQXvTr1Rw==}

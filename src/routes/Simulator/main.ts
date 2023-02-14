@@ -1,20 +1,34 @@
-export { createGame } from "./create";
+export { createFrame as createGame } from "./create";
 export { stepGame as simulate } from "./step";
+
+export type PlayerId = string;
 
 export type Vec2 = [number, number];
 
 export enum Action {
-	JUMP,
-}
+	MOVE_W = 0,
+	MOVE_A,
+	MOVE_S,
+	MOVE_D,
+	
+	STOP_W,
+	STOP_A,
+	STOP_S,
+	STOP_D,
+	
+	DASH_W,
+	DASH_A,
+	DASH_S,
+	DASH_D,
+};
 
-// export type Lake = [Vec2, Vec2, Vec2];
 export interface Lakes {
 	size: Vec2,
-	resolution: number,
-	bitmap: Uint8ClampedArray,
+	seed: number,
 }
 
 export interface PlayerMetadata {
+	id: string,
 	name: string,
 	skin: number,
 }
@@ -22,7 +36,10 @@ export interface PlayerMetadata {
 export interface Player {
 	pos: Vec2,
 	vel: Vec2,
-	actions: Action[],
+	angle: number,
+	angleVel: number,
+	dashCharge: number,
+	actions: Set<Action>,
 	metadata: PlayerMetadata,
 }
 
@@ -32,7 +49,9 @@ export interface Camera {
 }
 
 export interface Frame {
+	tps: number,
+	frameCount: number,
 	camera: Camera,
-	lakes: Lakes,
-	players: Player[],
+	lake: Lakes,
+	players: Map<string, Player>,
 }
