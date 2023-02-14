@@ -1,6 +1,6 @@
 import { createNoise2D } from "simplex-noise";
 import { createLakeFn } from "../Simulator/lake";
-import { BlockType, type Frame, type Vec2 } from "../Simulator/main";
+import { blockSize, BlockType, type Frame, type Vec2 } from "../Simulator/main";
 import { mod, PI, PI2, random } from "../utils";
 
 const noise = createNoise2D();
@@ -244,24 +244,25 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 
 
 function drawBlock(ctx: CanvasRenderingContext2D, blockType: BlockType) {
+	const size = blockSize(blockType);
+	
 	switch (blockType) {
 		case BlockType.SQUARE:
-			const size = 10;
-
 			ctx.fillStyle = colors.block[1];
-			const innerSize = size * 0.85;
+			const innerSize = size[0] * 0.9;
 			ctx.fillRect(- innerSize / 2, - innerSize / 2, innerSize, innerSize);
 
 			ctx.fillStyle = colors.block[0];
 			for (let x = -1; x <= 1; x += 2) {
 				for (let y = -1; y <= 1; y += 2) {
-					const blockSize = size * 0.42;
+					const border = 0.04;
+					const blockSize = size[0] * (0.5 - border);
 					ctx.beginPath();
 					ctx.roundRect(
-						x * size / 4 - blockSize / 2,
-						y * size / 4 - blockSize / 2,
+						x * (size[0] / 4 + size[0] * border / 2) - blockSize / 2,
+						y * (size[0] / 4 + size[0] * border / 2) - blockSize / 2,
 						blockSize, blockSize,
-						size * 0.05,
+						size[0] * 0.04,
 					);
 					ctx.fill();
 				}

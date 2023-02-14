@@ -66,3 +66,10 @@ export interface Frame {
 	players: Map<string, Player>,
 	blocks: Block[],
 }
+
+export function blockSize(blockType: BlockType): Vec2 {
+	switch (blockType) {
+		case BlockType.SQUARE: return [10, 10];
+		default: return [0, 0];
+	}
+}

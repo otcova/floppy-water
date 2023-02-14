@@ -1,7 +1,7 @@
 import { browser } from "$app/environment";
-import { atan2, cos, sin } from "../utils";
+import { atan2, cos, PI, sin } from "../utils";
 import { createLakeFn } from "./lake";
-import { Action, type Frame, type Vec2 } from "./main";
+import { Action, blockSize, type Frame, type Vec2 } from "./main";
 
 let boxPromise: Promise<typeof Box2D & EmscriptenModule> = new Promise(async resolve => {
 	if (browser) {
@@ -56,30 +56,48 @@ export async function stepGame(frame: Frame, steps: number) {
 	const gravity = track(new b2Vec2(0, 50));
 	const world = track(new b2World(gravity));
 
+	const arenaSize = frame.lake.size;
+
+	// ----- Create Blocks --------
+	for (const block of frame.blocks) {
+		const size = blockSize(block.type);
+		for (let y = -1; y <= 1; ++y) {
+			for (let x = -1; x <= 1; ++x) {
+				const bodyDef = track(new b2BodyDef());
+				bodyDef.position.Set(block.pos[0] + x * arenaSize[0], block.pos[1] + y * arenaSize[1]);
+				const body = world.CreateBody(bodyDef);
+
+				const box = track(new b2PolygonShape());
+				box.SetAsBox(size[0] / 2, size[1] / 2);
+
+				body.CreateFixture(box, 0);
+			}
+		}
+	}
 
 	// ----- Create Players --------
 	const playersBody = [];
 
 	for (const [_, player] of frame.players) {
-		//  --- Body ---
 		const bodyDef = track(new b2BodyDef());
 		bodyDef.type = b2_dynamicBody;
 		bodyDef.position.Set(...player.pos);
 		bodyDef.linearVelocity.Set(...player.vel);
-		bodyDef.angle = player.angle;
+		bodyDef.angle = player.angle + PI / 4;
 		bodyDef.angularVelocity = player.angleVel;
-		bodyDef.angularDamping = 10;
-		bodyDef.linearDamping = 50;
+		bodyDef.angularDamping = 30;
+		bodyDef.linearDamping = 0;
 		bodyDef.allowSleep = false;
 		const body = world.CreateBody(bodyDef);
 
 		const dynamicBox = track(new b2PolygonShape());
-		dynamicBox.SetAsBox(1, 1);
+		dynamicBox.SetAsBox(0.5, 0.5);
 
 		const fixtureDef = track(new b2FixtureDef());
 		fixtureDef.shape = dynamicBox;
-		fixtureDef.density = .05;
+		fixtureDef.density = .2;
 		fixtureDef.friction = 0;
+		fixtureDef.restitution = 0.9;
 
 		body.CreateFixture(fixtureDef);
 
@@ -89,8 +107,12 @@ export async function stepGame(frame: Frame, steps: number) {
 
 
 	// ---------------- Start simulation------------------------
+	const timeStep = 1 / frame.tps;
+	const velocityIterations = 6;
+	const positionIterations = 2;
 
 	for (let step = 0; step < steps; ++step) {
+
 
 		let i = 0;
 		for (const [_, player] of frame.players) {
@@ -100,8 +122,8 @@ export async function stepGame(frame: Frame, steps: number) {
 			player.pos = [position.x, position.y];
 			const velocity = body.GetLinearVelocity();
 			player.vel = [velocity.x, velocity.y];
-			player.angle = body.GetAngle();
-			
+			player.angle = body.GetAngle() - PI / 4;
+
 			const inWater = lakeFn(player.pos, frame);
 
 			if (inWater) {
@@ -114,21 +136,25 @@ export async function stepGame(frame: Frame, steps: number) {
 				body.SetLinearDamping(air_friction);
 				body.SetGravityScale(1);
 			}
-			
-			// Set angle
-			if (Math.abs(player.vel[0]) > 0.001 || Math.abs(player.vel[1]) > 0.001) {
-				const targetAngle = atan2(player.vel[1], player.vel[0]);
-				const angleDiference = atan2(sin(targetAngle-player.angle), cos(targetAngle-player.angle));
-				body.ApplyTorque(angleDiference * 20, true);
-			}
 
 			// -------- Player Actions ---------
-			
-			const direction = [[0, -1], [-1, 0], [0, 1], [1, 0]];
+
+			const directions = [[0, -1], [-1, 0], [0, 1], [1, 0]];
+
+			const rotate = (directionIndex: number, instant = false) => {
+				const dir = directions[directionIndex];
+				const targetAngle = atan2(dir[1], dir[0]);
+				if (instant) {
+					body.SetTransform(position, PI/4 + targetAngle);
+				} else {
+					const angleDiference = atan2(sin(targetAngle - player.angle), cos(targetAngle - player.angle));
+					body.ApplyTorque(angleDiference * 12, true);
+				}
+			}
 
 			const move = (directionIndex: number) => {
 				const moveForce = 20;
-				const [x, y] = direction[directionIndex];
+				const [x, y] = directions[directionIndex];
 				if (inWater) {
 					let fx = 0, fy = 0;
 					if (x != 0 && Math.sign(player.vel[0]) != Math.sign(x)) {
@@ -139,6 +165,7 @@ export async function stepGame(frame: Frame, steps: number) {
 					}
 					body.ApplyForceToCenter(track(new b2Vec2(fx + x * moveForce, fy + y * moveForce)), true);
 				}
+				rotate(directionIndex);
 			}
 
 			const dash = (directionIndex: number) => {
@@ -147,15 +174,15 @@ export async function stepGame(frame: Frame, steps: number) {
 
 				if (!inWater && player.dashCharge > 0) {
 					const dashForce = 1000;
-					const [x, y] = direction[directionIndex];
-					
+					const [x, y] = directions[directionIndex];
+
 					if (x != 0 && Math.sign(player.vel[0]) != Math.sign(x)) {
 						body.SetLinearVelocity(track(new b2Vec2(0, player.vel[1])));
 					}
 					if (y != 0 && Math.sign(player.vel[1]) != Math.sign(y)) {
 						body.SetLinearVelocity(track(new b2Vec2(player.vel[0], 0)));
 					}
-					
+
 					body.ApplyForceToCenter(track(new b2Vec2(x * dashForce, y * dashForce)), true);
 					player.dashCharge -= 1;
 				}
@@ -188,13 +215,11 @@ export async function stepGame(frame: Frame, steps: number) {
 			++i;
 		}
 
-		const timeStep = 1 / frame.tps;
-		const velocityIterations = 6;
-		const positionIterations = 2;
+
 		world.Step(timeStep, velocityIterations, positionIterations);
-		
-		frame.camera.pos[0] -= .1;
-		frame.camera.pos[1] -= .1;
+
+		// frame.camera.pos[0] -= .1;
+		// frame.camera.pos[1] -= .1;
 	}
 
 	// -------------- Record simulation results ----------------
@@ -207,9 +232,9 @@ export async function stepGame(frame: Frame, steps: number) {
 		const velocity = playersBody[i].GetLinearVelocity();
 		player.pos = [position.x, position.y];
 		player.vel = [velocity.x, velocity.y];
-		player.angle = playersBody[i].GetAngle();
+		player.angle = playersBody[i].GetAngle() - PI / 4;
 		player.angleVel = playersBody[i].GetAngularVelocity();
-		
+
 		++i;
 	}
 
