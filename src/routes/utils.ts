@@ -1,9 +1,23 @@
+import Alea from "alea";
+
 export function mod(n: number, base: number) {
 	return (n % base + base) % base;
 }
 
-export function random(min = 0, max = 1) {
-	return Math.random() * (max - min) + min;
+let aleaRandom = Alea();
+
+export function setRandomSeed(seed: number) {
+	aleaRandom = Alea(seed);
+}
+
+// max is not inclusive (min is inclusive)
+export function random(max = 1, min = 0) {
+	return aleaRandom() * (max - min) + min;
+}
+
+// max is not inclusive (min is inclusive)
+export function randomInt(max = 1, min = 0) {
+	return Math.trunc(random(max, min));
 }
 
 export function normalize([x, y]: [number, number]): [number, number] {

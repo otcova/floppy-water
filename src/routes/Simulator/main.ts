@@ -40,11 +40,15 @@ export interface Camera {
 
 export enum BlockType {
 	SQUARE = 0,
+	SQUARE2,
+	RECTANGLE,
+	RECTANGLE2,
 	length,
 }
 
 export interface Block {
 	pos: Vec2,
+	angle: number,
 	type: BlockType,
 }
 
@@ -57,9 +61,13 @@ export interface Frame {
 	blocks: Block[],
 }
 
-export function blockSize(blockType: BlockType): Vec2 {
+export function sizeOfBlock(blockType: BlockType): Vec2 {
+	const size = 8;
 	switch (blockType) {
-		case BlockType.SQUARE: return [10, 10];
+		case BlockType.SQUARE: return [size, size];
+		case BlockType.SQUARE2: return [size, size];
+		case BlockType.RECTANGLE: return [size * 3 / 2, size];
+		case BlockType.RECTANGLE2: return [size * 4 / 2, size];
 		default: return [0, 0];
 	}
 }

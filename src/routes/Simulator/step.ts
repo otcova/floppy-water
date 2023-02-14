@@ -1,7 +1,7 @@
 import { browser } from "$app/environment";
 import { atan2, cos, normalize, PI, sin } from "../utils";
 import { createLakeFn } from "./lake";
-import { blockSize, isDiagonal, isZero, type Dir2, type Frame, type Vec2 } from "./main";
+import { sizeOfBlock, isDiagonal, isZero, type Dir2, type Frame, type Vec2 } from "./main";
 
 let boxPromise: Promise<typeof Box2D & EmscriptenModule> = new Promise(async resolve => {
 	if (browser) {
@@ -60,11 +60,12 @@ export async function stepGame(frame: Frame, steps: number) {
 
 	// ----- Create Blocks --------
 	for (const block of frame.blocks) {
-		const size = blockSize(block.type);
+		const size = sizeOfBlock(block.type);
 		for (let y = -1; y <= 1; ++y) {
 			for (let x = -1; x <= 1; ++x) {
 				const bodyDef = track(new b2BodyDef());
 				bodyDef.position.Set(block.pos[0] + x * arenaSize[0], block.pos[1] + y * arenaSize[1]);
+				bodyDef.angle = block.angle;
 				const body = world.CreateBody(bodyDef);
 
 				const box = track(new b2PolygonShape());
@@ -96,8 +97,8 @@ export async function stepGame(frame: Frame, steps: number) {
 		const fixtureDef = track(new b2FixtureDef());
 		fixtureDef.shape = dynamicBox;
 		fixtureDef.density = .2;
-		fixtureDef.friction = 0;
-		fixtureDef.restitution = 0.9;
+		fixtureDef.friction = 0.2;
+		fixtureDef.restitution = 0.6;
 
 		body.CreateFixture(fixtureDef);
 
@@ -127,12 +128,12 @@ export async function stepGame(frame: Frame, steps: number) {
 			const inWater = lakeFn(player.pos, frame);
 
 			if (inWater) {
-				const water_friction = 3;
+				const water_friction = 2;
 				body.SetLinearDamping(water_friction);
 				body.SetGravityScale(0);
 				player.dashCharge = 2;
 			} else {
-				const air_friction = 1;
+				const air_friction = 0.1;
 				body.SetLinearDamping(air_friction);
 				body.SetGravityScale(1);
 			}

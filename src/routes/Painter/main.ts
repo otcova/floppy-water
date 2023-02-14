@@ -1,6 +1,6 @@
 import { createNoise2D } from "simplex-noise";
 import { createLakeFn } from "../Simulator/lake";
-import { blockSize, BlockType, type Frame, type Vec2 } from "../Simulator/main";
+import { sizeOfBlock, BlockType, type Frame, type Vec2 } from "../Simulator/main";
 import { mod, PI, PI2, random } from "../utils";
 
 const noise = createNoise2D();
@@ -134,9 +134,9 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 
 	for (let y = -1; y <= 1; ++y) {
 		for (let x = -1; x <= 1; ++x) {
-			ctx.drawImage(cache.lake.img, 
-				tilePos[0] + x * arenaSize[0], 
-				tilePos[1] + y * arenaSize[1], 
+			ctx.drawImage(cache.lake.img,
+				tilePos[0] + x * arenaSize[0],
+				tilePos[1] + y * arenaSize[1],
 				...arenaSize
 			);
 		}
@@ -206,6 +206,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 				ctx.translate(...tilePos);
 				ctx.translate(...block.pos);
 				ctx.translate(x * arenaSize[0], y * arenaSize[1]);
+				ctx.rotate(block.angle);
 				drawBlock(ctx, block.type);
 				ctx.setTransform(transform);
 			}
@@ -244,29 +245,135 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 
 
 function drawBlock(ctx: CanvasRenderingContext2D, blockType: BlockType) {
-	const size = blockSize(blockType);
-	
-	switch (blockType) {
-		case BlockType.SQUARE:
-			ctx.fillStyle = colors.block[1];
-			const innerSize = size[0] * 0.9;
-			ctx.fillRect(- innerSize / 2, - innerSize / 2, innerSize, innerSize);
+	const size = sizeOfBlock(blockType);
 
-			ctx.fillStyle = colors.block[0];
-			for (let x = -1; x <= 1; x += 2) {
-				for (let y = -1; y <= 1; y += 2) {
-					const border = 0.04;
-					const blockSize = size[0] * (0.5 - border);
-					ctx.beginPath();
-					ctx.roundRect(
-						x * (size[0] / 4 + size[0] * border / 2) - blockSize / 2,
-						y * (size[0] / 4 + size[0] * border / 2) - blockSize / 2,
-						blockSize, blockSize,
-						size[0] * 0.04,
-					);
-					ctx.fill();
-				}
+	const padding = 0.26;
+	const innerBlockPadding = 0.8;
+	const radii = 0.28;
+
+	if (blockType == BlockType.SQUARE) {
+		ctx.fillStyle = colors.block[1];
+		const innerSize = size[0] - innerBlockPadding;
+		ctx.fillRect(- innerSize / 2, - innerSize / 2, innerSize, innerSize);
+
+		ctx.fillStyle = colors.block[0];
+		ctx.beginPath();
+		for (let x = -1; x <= 1; x += 2) {
+			for (let y = -1; y <= 1; y += 2) {
+				const smallBlockSize = size[0] * 0.5 - padding;
+				ctx.roundRect(
+					(x * (size[0] / 2 + padding) - smallBlockSize) / 2,
+					(y * (size[0] / 2 + padding) - smallBlockSize) / 2,
+					smallBlockSize, smallBlockSize,
+					radii,
+				);
 			}
-			break;
+		}
+		ctx.fill();
+	} else if (blockType == BlockType.SQUARE2) {
+		const innerSize = size[0] - innerBlockPadding;
+
+		ctx.fillStyle = colors.block[1];
+		ctx.fillRect(- innerSize / 2, - innerSize / 2, innerSize, innerSize);
+
+		ctx.fillStyle = colors.block[0];
+		ctx.beginPath();
+		ctx.roundRect(
+			-size[0] / 2, -size[0] / 2,
+			size[0] / 2 - padding, size[0] / 2 - padding,
+			radii,
+		);
+
+		ctx.roundRect(
+			padding, -size[0] / 2,
+			size[0] / 2 - padding, size[0] / 2 - padding,
+			radii,
+		);
+
+		ctx.roundRect(
+			- size[0] / 2, padding,
+			size[0], size[0] / 2 - padding,
+			radii,
+		);
+		ctx.fill();
+	} else if (blockType == BlockType.RECTANGLE) {
+		const innerBlockSize: Vec2 = [size[0] - innerBlockPadding, size[1] - innerBlockPadding];
+
+		ctx.fillStyle = colors.block[1];
+		ctx.fillRect(- innerBlockSize[0] / 2, - innerBlockSize[1] / 2, ...innerBlockSize);
+
+		ctx.fillStyle = colors.block[0];
+		ctx.beginPath();
+
+		ctx.roundRect(
+			-size[0] / 2, -size[1] / 2,
+			size[0] / 3 - padding, size[1] / 2 - padding,
+			radii,
+		);
+
+		ctx.roundRect(
+			padding - size[0] * 1 / 6, -size[1] / 2,
+			size[0] * 2 / 3 - padding, size[1] / 2 - padding,
+			radii,
+		);
+
+		ctx.roundRect(
+			- size[0] / 2, padding,
+			size[0] * 2 / 3 - padding, size[1] / 2 - padding,
+			radii,
+		);
+
+		ctx.roundRect(
+			padding + size[0] / 6, padding,
+			size[0] / 3 - padding, size[1] / 2 - padding,
+			radii,
+		);
+		ctx.fill();
+	} else if (blockType == BlockType.RECTANGLE2) {
+		const innerBlockSize: Vec2 = [size[0] - innerBlockPadding, size[1] - innerBlockPadding];
+
+		ctx.fillStyle = colors.block[1];
+		ctx.fillRect(- innerBlockSize[0] / 2, - innerBlockSize[1] / 2, ...innerBlockSize);
+
+		ctx.fillStyle = colors.block[0];
+		ctx.beginPath();
+		
+		ctx.roundRect(
+			-size[0] / 2, -size[1] / 2,
+			size[0] / 4 - padding, size[1] / 2 - padding,
+			radii,
+		);
+
+		ctx.roundRect(
+			padding - size[0] / 4, -size[1] / 2,
+			size[0] / 2 - padding * 2, size[1] / 2 - padding,
+			radii,
+		);
+
+		ctx.roundRect(
+			-size[0] / 2, padding,
+			size[0] / 2 - padding * 2, size[1] / 2 - padding,
+			radii,
+		);
+		
+		ctx.roundRect(
+			0, padding,
+			size[0] / 4 - padding, size[1] / 2 - padding,
+			radii,
+		);
+		
+		ctx.roundRect(
+			padding + size[0] / 4, padding,
+			size[0] / 4 - padding, size[1] / 2 - padding,
+			radii,
+		);
+		
+		ctx.roundRect(
+			padding + size[0] / 4, -size[1] / 2,
+			size[0] / 4 - padding, size[1] / 2 - padding,
+			radii,
+		);
+		
+		ctx.fill();
 	}
 }
