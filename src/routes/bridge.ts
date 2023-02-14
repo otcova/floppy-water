@@ -1,4 +1,8 @@
-import type { Action, Frame, PlayerId } from "./Simulator/main";
+import type { Dir2, Frame, PlayerId } from "./Simulator/main";
+
+export type Action =
+	{ move: Dir2 } |
+	{ dash: Dir2 };
 
 export interface ClientBridge {
 	getReceivedFrame: () => null | Frame,

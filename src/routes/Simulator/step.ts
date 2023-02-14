@@ -1,7 +1,7 @@
 import { browser } from "$app/environment";
-import { atan2, cos, PI, sin } from "../utils";
+import { atan2, cos, normalize, PI, sin } from "../utils";
 import { createLakeFn } from "./lake";
-import { Action, blockSize, type Frame, type Vec2 } from "./main";
+import { blockSize, isDiagonal, isZero, type Dir2, type Frame, type Vec2 } from "./main";
 
 let boxPromise: Promise<typeof Box2D & EmscriptenModule> = new Promise(async resolve => {
 	if (browser) {
@@ -139,78 +139,75 @@ export async function stepGame(frame: Frame, steps: number) {
 
 			// -------- Player Actions ---------
 
-			const directions = [[0, -1], [-1, 0], [0, 1], [1, 0]];
 
-			const rotate = (directionIndex: number, instant = false) => {
-				const dir = directions[directionIndex];
-				const targetAngle = atan2(dir[1], dir[0]);
-				if (instant) {
-					body.SetTransform(position, PI/4 + targetAngle);
-				} else {
-					const angleDiference = atan2(sin(targetAngle - player.angle), cos(targetAngle - player.angle));
-					body.ApplyTorque(angleDiference * 12, true);
-				}
+			const rotate = (direction: Dir2) => {
+				if (isZero(direction)) return;
+				const targetAngle = atan2(direction[1], direction[0]);
+				const angleDiference = atan2(sin(targetAngle - player.angle), cos(targetAngle - player.angle));
+				body.ApplyTorque(angleDiference * 12, true);
 			}
 
-			const move = (directionIndex: number) => {
+			// Move
+			if (!isZero(player.move)) {
 				const moveForce = 20;
-				const [x, y] = directions[directionIndex];
+				const [x, y] = normalize(player.move);
 				if (inWater) {
 					let fx = 0, fy = 0;
-					if (x != 0 && Math.sign(player.vel[0]) != Math.sign(x)) {
+					if (player.move[0] != 0 && Math.sign(player.vel[0]) != Math.sign(x)) {
 						fx = - 5 * player.vel[0];
 					}
-					if (y != 0 && Math.sign(player.vel[1]) != Math.sign(y)) {
+					if (player.move[1] != 0 && Math.sign(player.vel[1]) != Math.sign(y)) {
 						fy = - 5 * player.vel[1];
 					}
 					body.ApplyForceToCenter(track(new b2Vec2(fx + x * moveForce, fy + y * moveForce)), true);
 				}
-				rotate(directionIndex);
+				rotate(player.move);
 			}
 
-			const dash = (directionIndex: number) => {
-				player.actions.add(Action.MOVE_W + directionIndex);
-				player.actions.delete(Action.DASH_W + directionIndex);
+			// Dash
 
-				if (!inWater && player.dashCharge > 0) {
-					const dashForce = 1000;
-					const [x, y] = directions[directionIndex];
+			const dash = (dir: Dir2) => {
+				const [dashX, dashY] = normalize(dir);
 
-					if (x != 0 && Math.sign(player.vel[0]) != Math.sign(x)) {
-						body.SetLinearVelocity(track(new b2Vec2(0, player.vel[1])));
-					}
-					if (y != 0 && Math.sign(player.vel[1]) != Math.sign(y)) {
-						body.SetLinearVelocity(track(new b2Vec2(player.vel[0], 0)));
-					}
-
-					body.ApplyForceToCenter(track(new b2Vec2(x * dashForce, y * dashForce)), true);
-					player.dashCharge -= 1;
+				if (dir[0] != 0 && Math.sign(player.vel[0]) != Math.sign(dashX)) {
+					body.SetLinearVelocity(track(new b2Vec2(0, player.vel[1])));
 				}
+				if (dir[1] != 0 && Math.sign(player.vel[1]) != Math.sign(dashY)) {
+					body.SetLinearVelocity(track(new b2Vec2(player.vel[0], 0)));
+				}
+
+				const dashForce = 900;
+				body.ApplyForceToCenter(track(new b2Vec2(dashX * dashForce, dashY * dashForce)), true);
+				--player.dashCharge;
 			};
 
-			const stop = (directionIndex: number) => {
-				player.actions.delete(Action.MOVE_W + directionIndex);
-				player.actions.delete(Action.STOP_W + directionIndex);
-			}
-
-			for (const action of player.actions) {
-				switch (action) {
-					case Action.MOVE_W: move(0); break;
-					case Action.MOVE_A: move(1); break;
-					case Action.MOVE_S: move(2); break;
-					case Action.MOVE_D: move(3); break;
-
-					case Action.STOP_W: stop(0); break;
-					case Action.STOP_A: stop(1); break;
-					case Action.STOP_S: stop(2); break;
-					case Action.STOP_D: stop(3); break;
-
-					case Action.DASH_W: dash(0); break;
-					case Action.DASH_A: dash(1); break;
-					case Action.DASH_S: dash(2); break;
-					case Action.DASH_D: dash(3); break;
+			if (player.dashDelayed) {
+				if (!isZero(player.move) && player.dashDelayed.frames > 0) {
+					--player.dashDelayed.frames;
+				} else {
+					dash(player.dashDelayed.dir);
+					player.dashDelayed = null;
 				}
 			}
+
+			if (!isZero(player.dash)) {
+				if (!inWater && player.dashCharge > 0) {
+					if (isDiagonal(player.dash)) {
+						dash(player.dash);
+						player.dashDelayed = null;
+					} else {
+						if (player.dashDelayed) dash(player.dashDelayed.dir);
+						const dashCooldownSeconds = 0.1;
+						player.dashDelayed = {
+							frames: frame.tps * dashCooldownSeconds,
+							dir: player.dash,
+						};
+					}
+				}
+
+				player.move = player.dash;
+				player.dash = [0, 0];
+			};
 
 			++i;
 		}

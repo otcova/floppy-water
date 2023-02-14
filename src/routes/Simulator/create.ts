@@ -16,13 +16,15 @@ export function createFrame(playersMetadata: PlayerMetadata[]): Frame {
 		},
 		players: new Map(playersMetadata.map(metadata => {
 			return [metadata.id, {
+				metadata,
 				pos: [0, -20],
 				vel: [0, 0],
-				dashCharge: 2,
 				angle: PI2 * random(),
 				angleVel: random(),
-				actions: new Set(),
-				metadata,
+				dashCharge: 2,
+				dashDelayed: null,
+				dash: [0, 0],
+				move: [0, 0],
 			}];
 		})),
 		blocks: createBlocks(arenaSize),

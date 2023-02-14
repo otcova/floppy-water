@@ -1,6 +1,6 @@
 import type { ClientBridge } from "./bridge";
 import { createCanvas, drawFrame } from "./Painter/main";
-import { Action, type Frame } from "./Simulator/main";
+import type { Dir2, Frame } from "./Simulator/main";
 import { stepGame } from "./Simulator/step";
 
 type StopClient = () => void;
@@ -11,6 +11,7 @@ export function startClient(canvasContainer: HTMLElement, bridge: ClientBridge):
 
 	return () => {
 		stopRender();
+		stopActionManager();
 	};
 }
 
@@ -52,22 +53,32 @@ function startRender(container: HTMLElement, bridge: ClientBridge): StopClient {
 }
 
 function startActionManager(bridge: ClientBridge): StopClient {
+	const keys: Set<string> = new Set();
+
+	const keyboardDirection = () => {
+		let dir: Dir2 = [0, 0];
+		if (keys.has('w')) dir[1] -= 1;
+		if (keys.has('a')) dir[0] -= 1;
+		if (keys.has('s')) dir[1] += 1;
+		if (keys.has('d')) dir[0] += 1;
+		return dir;
+	}
+
 	const onKeyDown = (event: KeyboardEvent) => {
 		if (event.repeat) return;
-		switch (event.key.toLowerCase()) {
-			case 'w': bridge.sendAction(Action.DASH_W); break;
-			case 'a': bridge.sendAction(Action.DASH_A); break;
-			case 's': bridge.sendAction(Action.DASH_S); break;
-			case 'd': bridge.sendAction(Action.DASH_D); break;
+		
+		const key = event.key.toLowerCase();
+		if ("wasd".includes(key)) {
+			keys.add(key);
+			bridge.sendAction({ dash: keyboardDirection() });
 		}
 	}
 
 	const onKeyUp = (event: KeyboardEvent) => {
-		switch (event.key.toLowerCase()) {
-			case 'w': bridge.sendAction(Action.STOP_W); break;
-			case 'a': bridge.sendAction(Action.STOP_A); break;
-			case 's': bridge.sendAction(Action.STOP_S); break;
-			case 'd': bridge.sendAction(Action.STOP_D); break;
+		const key = event.key.toLowerCase();
+		if ("wasd".includes(key)) {
+			keys.delete(key);
+			bridge.sendAction({ move: keyboardDirection() });
 		}
 	}
 
