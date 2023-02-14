@@ -1,6 +1,6 @@
 import { createNoise2D } from "simplex-noise";
 import { createLakeFn } from "../Simulator/lake";
-import type { Frame, Vec2 } from "../Simulator/main";
+import { BlockType, type Frame, type Vec2 } from "../Simulator/main";
 
 const noise = createNoise2D();
 
@@ -71,7 +71,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 	cache.pastRenderedFrameTime = time;
 
 	const canvas = ctx.canvas;
-	const arenaWidth = frame.camera.size[0], arenaHeight = frame.camera.size[1];
+	const arenaSize = frame.lake.size;
 
 	ctx.resetTransform();
 
@@ -79,7 +79,11 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 	ctx.translate(canvas.width / 2, canvas.height / 2);
-	const scale = Math.max(canvas.width / arenaWidth, canvas.height / arenaHeight);
+	ctx.translate(...frame.camera.pos);
+	const scale = Math.max(
+		canvas.width / frame.camera.size[0],
+		canvas.height / frame.camera.size[1],
+	);
 	ctx.scale(scale, scale);
 
 	// --------------  Draw Lakes  -------------------------------------
@@ -121,13 +125,13 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 		cache.lake.img.src = canvas.toDataURL();
 	}
 
-
-	const size = frame.lake.size;
-	ctx.drawImage(cache.lake.img, 0, 0, size[0], size[1]);
-	ctx.drawImage(cache.lake.img, -size[0], 0, size[0], size[1]);
-	ctx.drawImage(cache.lake.img, 0, -size[1], size[0], size[1]);
-	ctx.drawImage(cache.lake.img, -size[0], -size[1], size[0], size[1]);
-
+	{
+		const size = frame.lake.size;
+		ctx.drawImage(cache.lake.img, 0, 0, size[0], size[1]);
+		ctx.drawImage(cache.lake.img, -size[0], 0, size[0], size[1]);
+		ctx.drawImage(cache.lake.img, 0, -size[1], size[0], size[1]);
+		ctx.drawImage(cache.lake.img, -size[0], -size[1], size[0], size[1]);
+	}
 
 	// --------------  Water Particles  -------------------------------------
 
@@ -140,7 +144,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 
 		const size = 0.5 + Math.random() * 0.6;
 
-		if (inWater && Math.random() < deltaTime * particlesPerSecond * (1 + speed)) {
+		if (inWater && Math.random() < deltaTime * particlesPerSecond * (0.2 + speed)) {
 			cache.waterParticles.push({
 				pos: [player.pos[0] + (Math.random() - 0.5) * 0.7, player.pos[1] + (Math.random() - 0.5) * 0.7],
 				vel: [(Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.05],
@@ -184,6 +188,19 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 		ctx.setTransform(transform);
 	}
 
+	// --------------  Draw Blocks  -------------------------------------
+
+	for (const block of frame.blocks) {
+		for (let y = -1; y <= 1; ++y) {
+			for (let x = -1; x <= 1; ++x) {
+				const transform = ctx.getTransform();
+				ctx.translate(...block.pos);
+				ctx.translate(x * arenaSize[0], y * arenaSize[1]);
+				drawBlock(ctx, block.type);
+				ctx.setTransform(transform);
+			}
+		}
+	}
 
 	// --------------  Draw Players  -------------------------------------
 
@@ -214,4 +231,32 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 		ctx.setTransform(transform);
 	}
 
+}
+
+
+function drawBlock(ctx: CanvasRenderingContext2D, blockType: BlockType) {
+	switch (blockType) {
+		case BlockType.SQUARE:
+			const size = 10;
+
+			ctx.fillStyle = colors.block[1];
+			const innerSize = size * 0.85;
+			ctx.fillRect(- innerSize / 2, - innerSize / 2, innerSize, innerSize);
+
+			ctx.fillStyle = colors.block[0];
+			for (let x = -1; x <= 1; x += 2) {
+				for (let y = -1; y <= 1; y += 2) {
+					const blockSize = size * 0.42;
+					ctx.beginPath();
+					ctx.roundRect(
+						x * size / 4 - blockSize / 2,
+						y * size / 4 - blockSize / 2,
+						blockSize, blockSize,
+						size * 0.05,
+					);
+					ctx.fill();
+				}
+			}
+			break;
+	}
 }

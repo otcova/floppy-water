@@ -1,16 +1,16 @@
-import type { Camera, Frame, PlayerMetadata } from "./main";
+import { BlockType, type Block, type Camera, type Frame, type PlayerMetadata, type Vec2 } from "./main";
 
 export function createFrame(playersMetadata: PlayerMetadata[]): Frame {
-	const camera: Camera = {
-		pos: [0, 0],
-		size: [100*1.0, 55*1.0],
-	};
+	const arenaSize: Vec2 = [100, 55];
 	return {
 		tps: 120,
 		frameCount: 1,
-		camera,
+		camera: {
+			pos: [0, 0],
+			size: [arenaSize[0] * 1.0, arenaSize[1] * 1.0],
+		},
 		lake: {
-			size: camera.size,
+			size: arenaSize,
 			seed: Math.floor(Math.random() * 1e9),
 		},
 		players: new Map(playersMetadata.map(metadata => {
@@ -24,5 +24,19 @@ export function createFrame(playersMetadata: PlayerMetadata[]): Frame {
 				metadata,
 			}];
 		})),
+		blocks: createBlocks(arenaSize),
 	};
+}
+
+function createBlocks(arenaSize: Vec2): Block[] {
+	const blocks: Block[] = [];
+
+	const block: Block = {
+		pos: [Math.random() * arenaSize[0], Math.random() * arenaSize[1]],
+		type: Math.trunc(Math.random() * BlockType.length),
+	};
+
+	blocks.push(block);
+
+	return blocks;
 }

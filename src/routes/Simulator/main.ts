@@ -48,10 +48,21 @@ export interface Camera {
 	size: Vec2,
 }
 
+export enum BlockType {
+	SQUARE = 0,
+	length,
+}
+
+export interface Block {
+	pos: Vec2,
+	type: BlockType,
+}
+
 export interface Frame {
 	tps: number,
 	frameCount: number,
 	camera: Camera,
 	lake: Lakes,
 	players: Map<string, Player>,
+	blocks: Block[],
 }
