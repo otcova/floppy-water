@@ -1,6 +1,7 @@
 import { createNoise2D } from "simplex-noise";
 import { createLakeFn } from "../Simulator/lake";
 import { BlockType, type Frame, type Vec2 } from "../Simulator/main";
+import { mod, PI, PI2, random } from "../utils";
 
 const noise = createNoise2D();
 
@@ -79,12 +80,12 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 	ctx.translate(canvas.width / 2, canvas.height / 2);
-	ctx.translate(...frame.camera.pos);
 	const scale = Math.max(
 		canvas.width / frame.camera.size[0],
 		canvas.height / frame.camera.size[1],
 	);
 	ctx.scale(scale, scale);
+	ctx.translate(-frame.camera.pos[0], -frame.camera.pos[1]);
 
 	// --------------  Draw Lakes  -------------------------------------
 
@@ -125,12 +126,20 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 		cache.lake.img.src = canvas.toDataURL();
 	}
 
-	{
-		const size = frame.lake.size;
-		ctx.drawImage(cache.lake.img, 0, 0, size[0], size[1]);
-		ctx.drawImage(cache.lake.img, -size[0], 0, size[0], size[1]);
-		ctx.drawImage(cache.lake.img, 0, -size[1], size[0], size[1]);
-		ctx.drawImage(cache.lake.img, -size[0], -size[1], size[0], size[1]);
+	const tilePos: Vec2 = [
+		frame.camera.pos[0] - mod(frame.camera.pos[0], arenaSize[0]),
+		frame.camera.pos[1] - mod(frame.camera.pos[1], arenaSize[1]),
+	];
+
+
+	for (let y = -1; y <= 1; ++y) {
+		for (let x = -1; x <= 1; ++x) {
+			ctx.drawImage(cache.lake.img, 
+				tilePos[0] + x * arenaSize[0], 
+				tilePos[1] + y * arenaSize[1], 
+				...arenaSize
+			);
+		}
 	}
 
 	// --------------  Water Particles  -------------------------------------
@@ -142,16 +151,16 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 		const inWater = cache.lake.fn(player.pos) > 0;
 		const speed = Math.hypot(...player.vel);
 
-		const size = 0.5 + Math.random() * 0.6;
+		const size = 0.5 + random() * 0.6;
 
-		if (inWater && Math.random() < deltaTime * particlesPerSecond * (0.2 + speed)) {
+		if (inWater && random() < deltaTime * particlesPerSecond * (0.2 + speed)) {
 			cache.waterParticles.push({
-				pos: [player.pos[0] + (Math.random() - 0.5) * 0.7, player.pos[1] + (Math.random() - 0.5) * 0.7],
-				vel: [(Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.05],
+				pos: [player.pos[0] + (random() - 0.5) * 0.7, player.pos[1] + (random() - 0.5) * 0.7],
+				vel: [(random() - 0.5) * 0.05, (random() - 0.5) * 0.05],
 				size: [size, size],
 				spawnTime: time,
-				lifeSpan: 0.3 + Math.random() * 0.8,
-				angle: 2 * Math.PI * Math.random(),
+				lifeSpan: 0.3 + random() * 0.8,
+				angle: PI2 * random(),
 			});
 		}
 	}
@@ -194,6 +203,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 		for (let y = -1; y <= 1; ++y) {
 			for (let x = -1; x <= 1; ++x) {
 				const transform = ctx.getTransform();
+				ctx.translate(...tilePos);
 				ctx.translate(...block.pos);
 				ctx.translate(x * arenaSize[0], y * arenaSize[1]);
 				drawBlock(ctx, block.type);
@@ -207,7 +217,6 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 
 	for (const [id, player] of frame.players) {
 
-		// const angle = Math.atan2(player.vel[1], player.vel[0]) || 0;
 		const angle = player.angle;
 		const b = 0;//noise(0, t/6);
 		const c = 0;//noise(10, t/4);
@@ -217,7 +226,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame) {
 
 		ctx.translate(...player.pos);
 
-		ctx.rotate(angle - Math.PI / 4);
+		ctx.rotate(angle - PI / 4);
 
 		ctx.fillStyle = colors.white;
 		ctx.fillRect(- 0.5, - 0.5, 1, 1);

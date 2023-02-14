@@ -1,4 +1,5 @@
 import { browser } from "$app/environment";
+import { atan2, cos, sin } from "../utils";
 import { createLakeFn } from "./lake";
 import { Action, type Frame, type Vec2 } from "./main";
 
@@ -116,8 +117,8 @@ export async function stepGame(frame: Frame, steps: number) {
 			
 			// Set angle
 			if (Math.abs(player.vel[0]) > 0.001 || Math.abs(player.vel[1]) > 0.001) {
-				const targetAngle = Math.atan2(player.vel[1], player.vel[0]);
-				const angleDiference = Math.atan2(Math.sin(targetAngle-player.angle), Math.cos(targetAngle-player.angle));
+				const targetAngle = atan2(player.vel[1], player.vel[0]);
+				const angleDiference = atan2(sin(targetAngle-player.angle), cos(targetAngle-player.angle));
 				body.ApplyTorque(angleDiference * 20, true);
 			}
 
@@ -191,6 +192,9 @@ export async function stepGame(frame: Frame, steps: number) {
 		const velocityIterations = 6;
 		const positionIterations = 2;
 		world.Step(timeStep, velocityIterations, positionIterations);
+		
+		frame.camera.pos[0] -= .1;
+		frame.camera.pos[1] -= .1;
 	}
 
 	// -------------- Record simulation results ----------------
@@ -205,7 +209,7 @@ export async function stepGame(frame: Frame, steps: number) {
 		player.vel = [velocity.x, velocity.y];
 		player.angle = playersBody[i].GetAngle();
 		player.angleVel = playersBody[i].GetAngularVelocity();
-		// 
+		
 		++i;
 	}
 

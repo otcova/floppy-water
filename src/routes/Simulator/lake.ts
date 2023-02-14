@@ -1,6 +1,7 @@
 import { createNoise2D, createNoise3D, createNoise4D, type RandomFn } from "simplex-noise";
 import alea from "alea";
 import type { Vec2 } from "./main";
+import { cos, mod, PI2, sin } from "../utils";
 
 export function createLakeFn(size: Vec2, seed: number): (pos: Vec2) => number {
 	const noise = createTilableNoise(size, seed);
@@ -20,8 +21,8 @@ export function createLakeFn(size: Vec2, seed: number): (pos: Vec2) => number {
 }
 
 function createTilableNoise(size: Vec2, seed: number): (pos: Vec2) => number {
-	seed = Math.abs(Math.floor(seed));
-	return tilableNoise[seed % tilableNoise.length](size, alea(seed));
+	seed = Math.trunc(seed);
+	return tilableNoise[mod(seed, tilableNoise.length)](size, alea(seed));
 }
 
 const noiseScale = 0.03;
@@ -30,8 +31,8 @@ const tilableNoise = [
 	function (size: Vec2, randomFn?: RandomFn) {
 		const noise = createNoise2D(randomFn);
 		return (pos: Vec2) => {
-			const x = (pos[0] % size[0] + size[0]) % size[0];
-			const y = (pos[1] % size[1] + size[1]) % size[1];
+			const x = mod(pos[0], size[0]);
+			const y = mod(pos[1], size[1]);
 
 			return noise(
 				(x > size[0] / 2 ? x : size[0] - x) * noiseScale,
@@ -43,13 +44,13 @@ const tilableNoise = [
 		const noise = createNoise3D(randomFn);
 
 		return (pos: Vec2) => {
-			const a = 2 * Math.PI * pos[0] / size[0];
-			const b = 2 * Math.PI * pos[1] / size[1];
+			const a = PI2 * pos[0] / size[0];
+			const b = PI2 * pos[1] / size[1];
 
 			return noise(
-				0.12 * noiseScale * size[0] * (1 + Math.cos(a)),
-				0.12 * noiseScale * (size[0] * (1 + Math.sin(a)) + size[1] * (1 + Math.cos(b))),
-				0.12 * noiseScale * size[1] * (1 + Math.sin(b)),
+				0.12 * noiseScale * size[0] * (1 + cos(a)),
+				0.12 * noiseScale * (size[0] * (1 + sin(a)) + size[1] * (1 + cos(b))),
+				0.12 * noiseScale * size[1] * (1 + sin(b)),
 			);
 		}
 	},
@@ -58,29 +59,29 @@ const tilableNoise = [
 		const noise = createNoise4D(randomFn);
 
 		return (pos: Vec2) => {
-			const a = 2 * Math.PI * pos[0] / size[0];
-			const b = 2 * Math.PI * pos[1] / size[1];
+			const a = PI2 * pos[0] / size[0];
+			const b = PI2 * pos[1] / size[1];
 
 			return noise(
-				0.2 * noiseScale * size[0] * (1 + Math.cos(a)),
-				0.2 * noiseScale * size[0] * (1 + Math.sin(a)),
-				0.2 * noiseScale * size[1] * (1 + Math.cos(b)),
-				0.2 * noiseScale * size[1] * (1 + Math.sin(b)),
+				0.2 * noiseScale * size[0] * (1 + cos(a)),
+				0.2 * noiseScale * size[0] * (1 + sin(a)),
+				0.2 * noiseScale * size[1] * (1 + cos(b)),
+				0.2 * noiseScale * size[1] * (1 + sin(b)),
 			);
 		}
 	},
 
 	function (size: Vec2, randomFn?: RandomFn) {
 		const noise = createNoise3D(randomFn);
-		
+
 		return (pos: Vec2) => {
-			const a = 2 * Math.PI * pos[0] / size[0];
-			const b = 2 * Math.PI * pos[1] / size[1];
+			const a = PI2 * pos[0] / size[0];
+			const b = PI2 * pos[1] / size[1];
 
 			return 0.7 * noise(
-				0.3 * noiseScale * size[0] * (1 + Math.cos(a)),
-				0.3 * noiseScale * (size[0] * (1 + Math.sin(a)) + size[1] * (1 + Math.cos(b))),
-				0.3 * noiseScale * size[1] * (1 + Math.sin(b)),
+				0.3 * noiseScale * size[0] * (1 + cos(a)),
+				0.3 * noiseScale * (size[0] * (1 + sin(a)) + size[1] * (1 + cos(b))),
+				0.3 * noiseScale * size[1] * (1 + sin(b)),
 			);
 		}
 	},
@@ -88,14 +89,14 @@ const tilableNoise = [
 	function (size: Vec2, randomFn?: RandomFn) {
 		const noise = createNoise4D(randomFn);
 		return (pos: Vec2) => {
-			const a = 2 * Math.PI * pos[0] / size[0];
-			const b = 2 * Math.PI * pos[1] / size[1];
+			const a = PI2 * pos[0] / size[0];
+			const b = PI2 * pos[1] / size[1];
 
 			return 1.3 * noise(
-				0.08 * noiseScale * size[0] * (1 + Math.cos(a)),
-				0.08 * noiseScale * size[0] * (1 + Math.sin(a)),
-				0.08 * noiseScale * size[1] * (1 + Math.cos(b)),
-				0.08 * noiseScale * size[1] * (1 + Math.sin(b)),
+				0.08 * noiseScale * size[0] * (1 + cos(a)),
+				0.08 * noiseScale * size[0] * (1 + sin(a)),
+				0.08 * noiseScale * size[1] * (1 + cos(b)),
+				0.08 * noiseScale * size[1] * (1 + sin(b)),
 			);
 		}
 	},
